@@ -1,0 +1,27 @@
+runtime:
+  language: unknown
+  install: echo "todo"
+  test: echo "todo"
+  build: echo "todo"
+  lint: echo "todo"
+
+agent:
+  model: claude-sonnet-4-6
+  stale: 10m
+  timeout: 15m
+
+branch:
+  base: main
+  pattern: "feat/{bead-id}"
+
+pr:
+  auto-merge: false
+  # reviewers: []
+  # labels: []
+
+design:
+  require_approval: true  # set false for automated pipelines
+
+context:
+  - CLAUDE.md
+  - SPIRE.md
