@@ -1,9 +1,9 @@
 runtime:
-  language: unknown
-  install: echo "todo"
-  test: echo "todo"
-  build: echo "todo"
-  lint: echo "todo"
+  language: typescript
+  install: npm install
+  test: echo "no tests configured"
+  build: npm run build
+  lint: npm run lint
 
 agent:
   model: claude-sonnet-4-6
