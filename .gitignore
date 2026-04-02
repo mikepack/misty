@@ -1,1 +1,7 @@
 .beads/
+node_modules
+.next
+out
+.env*
+*.tsbuildinfo
+next-env.d.ts
