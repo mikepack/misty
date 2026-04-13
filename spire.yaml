@@ -1,7 +1,7 @@
 runtime:
   language: typescript
   install: npm install
-  test: echo "no tests configured"
+  test: npm test
   build: npm run build
   lint: npm run lint
 

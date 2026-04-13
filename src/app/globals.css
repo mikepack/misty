@@ -1,11 +1,139 @@
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+@import "tailwindcss";
+
+@theme {
+  /* Typography */
+  --font-family-system: system-ui, -apple-system, sans-serif;
+  --font-family-mono: ui-monospace, SFMono-Regular, monospace;
+
+  /* Border radius */
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  /* Light mode colors (defaults) */
+  --color-fg-default: #1f2328;
+  --color-fg-muted: #656d76;
+  --color-fg-accent: #0969da;
+  --color-fg-success: #1a7f37;
+  --color-fg-attention: #9a6700;
+  --color-fg-danger: #d1242f;
+  --color-fg-done: #8250df;
+  --color-fg-on-emphasis: #ffffff;
+  --color-bg-default: #ffffff;
+  --color-bg-muted: #f6f8fa;
+  --color-bg-accent-emphasis: #0969da;
+  --color-bg-success-emphasis: #1a7f37;
+  --color-bg-danger-subtle: #ffebe9;
+  --color-bg-accent-subtle: rgba(9, 105, 218, 0.15);
+  --color-border-default: #d0d7de;
+  --color-border-muted: #e1e4e8;
+  --color-border-accent: #0969da;
+}
+
+/* Legacy CSS variable aliases */
+:root {
+  --fg-default: var(--color-fg-default);
+  --fg-muted: var(--color-fg-muted);
+  --fg-accent: var(--color-fg-accent);
+  --fg-success: var(--color-fg-success);
+  --fg-attention: var(--color-fg-attention);
+  --fg-danger: var(--color-fg-danger);
+  --fg-done: var(--color-fg-done);
+  --fg-on-emphasis: var(--color-fg-on-emphasis);
+  --bg-default: var(--color-bg-default);
+  --bg-muted: var(--color-bg-muted);
+  --bg-accent-emphasis: var(--color-bg-accent-emphasis);
+  --bg-success-emphasis: var(--color-bg-success-emphasis);
+  --bg-danger-subtle: var(--color-bg-danger-subtle);
+  --bg-accent-subtle: var(--color-bg-accent-subtle);
+  --border-default: var(--color-border-default);
+  --border-muted: var(--color-border-muted);
+  --border-accent: var(--color-border-accent);
+}
+
+/* Dark mode overrides */
+[data-theme="dark"] {
+  --color-fg-default: #e6edf3;
+  --color-fg-muted: #8b949e;
+  --color-fg-accent: #58a6ff;
+  --color-fg-success: #3fb950;
+  --color-fg-attention: #d29922;
+  --color-fg-danger: #f85149;
+  --color-fg-done: #bc8cff;
+  --color-fg-on-emphasis: #ffffff;
+  --color-bg-default: #0d1117;
+  --color-bg-muted: #161b22;
+  --color-bg-accent-emphasis: #1f6feb;
+  --color-bg-success-emphasis: #238636;
+  --color-bg-danger-subtle: #490202;
+  --color-bg-accent-subtle: rgba(56, 139, 253, 0.15);
+  --color-border-default: #30363d;
+  --color-border-muted: #21262d;
+  --color-border-accent: #1f6feb;
+
+  --fg-default: var(--color-fg-default);
+  --fg-muted: var(--color-fg-muted);
+  --fg-accent: var(--color-fg-accent);
+  --fg-success: var(--color-fg-success);
+  --fg-attention: var(--color-fg-attention);
+  --fg-danger: var(--color-fg-danger);
+  --fg-done: var(--color-fg-done);
+  --fg-on-emphasis: var(--color-fg-on-emphasis);
+  --bg-default: var(--color-bg-default);
+  --bg-muted: var(--color-bg-muted);
+  --bg-accent-emphasis: var(--color-bg-accent-emphasis);
+  --bg-success-emphasis: var(--color-bg-success-emphasis);
+  --bg-danger-subtle: var(--color-bg-danger-subtle);
+  --bg-accent-subtle: var(--color-bg-accent-subtle);
+  --border-default: var(--color-border-default);
+  --border-muted: var(--color-border-muted);
+  --border-accent: var(--color-border-accent);
 }
 
 body {
-  font-family: system-ui, sans-serif;
-  background: #f8f9fa;
-  color: #1a1a1a;
+  font-family: var(--font-family-system);
+  font-size: 14px;
+  line-height: 1.5;
+  background: var(--bg-muted);
+  color: var(--fg-default);
+}
+
+.layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.leftPanel {
+  padding: 16px;
+  background: var(--bg-default);
+  overflow-y: auto;
+  order: 2;
+}
+
+.rightPanel {
+  padding: 16px;
+  overflow-y: auto;
+  order: 1;
+}
+
+@media (min-width: 1024px) {
+  .layout {
+    flex-direction: row;
+  }
+
+  .leftPanel {
+    width: 420px;
+    flex-shrink: 0;
+    padding: 24px;
+    border-right: 1px solid var(--border-muted);
+    order: 1;
+  }
+
+  .rightPanel {
+    flex: 1;
+    padding: 24px;
+    order: 2;
+  }
 }
