@@ -150,9 +150,11 @@ export default function HillChart({ scopes, onUpdatePosition, onCommitPosition, 
       >
         {originPositions && (
           <defs>
-            <marker id="goal-arrow" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto">
-              <polygon points="0 0, 8 3, 0 6" fill="var(--fg-accent)" />
-            </marker>
+            {scopes.map((scope) => (
+              <marker key={scope.id} id={`goal-arrow-${scope.id}`} markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto">
+                <polygon points="0 0, 8 3, 0 6" fill={scope.color} />
+              </marker>
+            ))}
           </defs>
         )}
 
@@ -223,10 +225,10 @@ export default function HillChart({ scopes, onUpdatePosition, onCommitPosition, 
               <line
                 x1={origin.x} y1={origin.y}
                 x2={arrowX} y2={arrowY}
-                stroke="var(--fg-accent)"
+                stroke={scope.color}
                 strokeWidth={1.5}
                 strokeDasharray="4 3"
-                markerEnd="url(#goal-arrow)"
+                markerEnd={`url(#goal-arrow-${scope.id})`}
                 opacity={0.5}
               />
               <circle
