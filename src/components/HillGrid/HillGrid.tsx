@@ -21,7 +21,7 @@ function MiniHillChart({ hill }: { hill: Hill }) {
   return (
     <svg viewBox="0 0 800 300" className="w-full h-auto mt-3 block" preserveAspectRatio="xMidYMid meet">
       <path d={miniPath} fill="none" stroke="var(--border-default)" strokeWidth={2} />
-      {hill.scopes.map((scope) => {
+      {hill.scopes.filter((s) => !s.hidden).map((scope) => {
         const { x, y } = positionToPoint(scope.position);
         return (
           <circle key={scope.id} cx={x} cy={y} r={10} fill={scope.color} stroke="var(--bg-default)" strokeWidth={2} />
