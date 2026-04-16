@@ -12,6 +12,7 @@ interface ScopePanelProps {
   onUpdateName: (scopeId: string, name: string) => void;
   onUpdateDescription: (scopeId: string, description: string) => void;
   onUpdateColor: (scopeId: string, color: string) => void;
+  onToggleHidden: (scopeId: string) => void;
 }
 
 export default function ScopePanel({
@@ -22,6 +23,7 @@ export default function ScopePanel({
   onUpdateName,
   onUpdateDescription,
   onUpdateColor,
+  onToggleHidden,
 }: ScopePanelProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [newName, setNewName] = useState('');
@@ -121,6 +123,7 @@ export default function ScopePanel({
             onUpdateName={onUpdateName}
             onUpdateDescription={onUpdateDescription}
             onUpdateColor={onUpdateColor}
+            onToggleHidden={() => onToggleHidden(scope.id)}
             isDragging={dragIndex === index}
             isDragOver={overIndex === index && dragIndex !== index}
             onDragStart={() => handleDragStart(index)}

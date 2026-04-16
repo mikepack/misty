@@ -1,16 +1,19 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useHills } from '@/context/HillsContext';
 import { usePresence } from '@/lib/usePresence';
 import HillDescription from '@/components/HillDescription/HillDescription';
 import ScopePanel from '@/components/ScopePanel/ScopePanel';
 import HillChart from '@/components/HillChart/HillChart';
 
+type HillMode = 'current' | 'goal';
+
 export default function HillPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const [mode, setMode] = useState<HillMode>('current');
   const {
     getHill,
     updateHill,
@@ -18,9 +21,13 @@ export default function HillPage() {
     deleteScope,
     updateScopePosition,
     commitScopePosition,
+    updateScopeGoalPosition,
+    commitScopeGoalPosition,
+    syncGoalsFromCurrent,
     updateScopeName,
     updateScopeDescription,
     updateScopeColor,
+    toggleScopeHidden,
     reorderScopes,
   } = useHills();
 
@@ -48,13 +55,25 @@ export default function HillPage() {
   );
 
   const handleUpdatePosition = useCallback(
-    (scopeId: string, position: number) => updateScopePosition(id, scopeId, position),
-    [id, updateScopePosition]
+    (scopeId: string, position: number) => {
+      if (mode === 'goal') {
+        updateScopeGoalPosition(id, scopeId, position);
+      } else {
+        updateScopePosition(id, scopeId, position);
+      }
+    },
+    [id, mode, updateScopePosition, updateScopeGoalPosition]
   );
 
   const handleCommitPosition = useCallback(
-    (scopeId: string, oldPos: number, newPos: number) => commitScopePosition(id, scopeId, oldPos, newPos),
-    [id, commitScopePosition]
+    (scopeId: string, oldPos: number, newPos: number) => {
+      if (mode === 'goal') {
+        commitScopeGoalPosition(id, scopeId, oldPos, newPos);
+      } else {
+        commitScopePosition(id, scopeId, oldPos, newPos);
+      }
+    },
+    [id, mode, commitScopePosition, commitScopeGoalPosition]
   );
 
   const handleUpdateScopeName = useCallback(
@@ -72,10 +91,41 @@ export default function HillPage() {
     [id, updateScopeColor]
   );
 
+  const handleToggleHidden = useCallback(
+    (scopeId: string) => toggleScopeHidden(id, scopeId),
+    [id, toggleScopeHidden]
+  );
+
   const handleReorder = useCallback(
     (fromIndex: number, toIndex: number) => reorderScopes(id, fromIndex, toIndex),
     [id, reorderScopes]
   );
+
+  const handleSyncGoals = useCallback(
+    () => syncGoalsFromCurrent(id),
+    [id, syncGoalsFromCurrent]
+  );
+
+  // In goal mode, show goalPosition (falling back to position if no goal set)
+  const chartScopes = useMemo(() => {
+    if (!hill) return [];
+    const visible = hill.scopes.filter((s) => !s.hidden);
+    if (mode === 'current') return visible;
+    return visible.map((s) => ({
+      ...s,
+      position: s.goalPosition ?? s.position,
+    }));
+  }, [hill, mode]);
+
+  // Map of scope id → current position, for showing ghost dots in goal mode
+  const originPositions = useMemo(() => {
+    if (!hill || mode !== 'goal') return undefined;
+    const map: Record<string, number> = {};
+    hill.scopes.filter((s) => !s.hidden).forEach((s) => {
+      map[s.id] = s.position;
+    });
+    return map;
+  }, [hill, mode]);
 
   if (!hill) {
     return (
@@ -93,15 +143,7 @@ export default function HillPage() {
       <div className="leftPanel">
         <button
           onClick={() => router.push('/')}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--fg-muted)',
-            cursor: 'pointer',
-            fontSize: 12,
-            marginBottom: 16,
-            padding: 0,
-          }}
+          className="bg-none border-none text-fg-muted cursor-pointer text-xs mb-4 p-0 hover:text-fg-default"
         >
           &larr; All hills
         </button>
@@ -120,10 +162,41 @@ export default function HillPage() {
           onUpdateName={handleUpdateScopeName}
           onUpdateDescription={handleUpdateScopeDescription}
           onUpdateColor={handleUpdateScopeColor}
+          onToggleHidden={handleToggleHidden}
         />
       </div>
       <div className="rightPanel">
-        <HillChart scopes={hill.scopes} onUpdatePosition={handleUpdatePosition} onCommitPosition={handleCommitPosition} />
+        <div className="flex items-center gap-2 mb-3">
+          <div className="flex bg-bg-muted rounded-md p-0.5 border border-border-muted">
+            <button
+              className={`px-3 py-1 text-xs font-medium rounded-sm border-none cursor-pointer transition-colors ${mode === 'current' ? 'bg-bg-default text-fg-default shadow-sm' : 'bg-transparent text-fg-muted hover:text-fg-default'}`}
+              onClick={() => setMode('current')}
+            >
+              Current
+            </button>
+            <button
+              className={`px-3 py-1 text-xs font-medium rounded-sm border-none cursor-pointer transition-colors ${mode === 'goal' ? 'bg-bg-default text-fg-accent shadow-sm' : 'bg-transparent text-fg-muted hover:text-fg-default'}`}
+              onClick={() => setMode('goal')}
+            >
+              Goal
+            </button>
+          </div>
+          {mode === 'goal' && (
+            <button
+              className="px-2 py-1 text-xs text-fg-muted border border-border-muted rounded-md bg-bg-default cursor-pointer hover:text-fg-default hover:border-fg-accent"
+              onClick={handleSyncGoals}
+              title="Copy current positions into goal positions"
+            >
+              Sync from current
+            </button>
+          )}
+        </div>
+        <HillChart
+          scopes={chartScopes}
+          onUpdatePosition={handleUpdatePosition}
+          onCommitPosition={handleCommitPosition}
+          originPositions={originPositions}
+        />
       </div>
     </div>
   );

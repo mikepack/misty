@@ -27,6 +27,10 @@ interface HillsContextValue {
   updateScopeName: (hillId: string, scopeId: string, name: string) => void;
   updateScopeDescription: (hillId: string, scopeId: string, description: string) => void;
   updateScopeColor: (hillId: string, scopeId: string, color: string) => void;
+  toggleScopeHidden: (hillId: string, scopeId: string) => void;
+  updateScopeGoalPosition: (hillId: string, scopeId: string, goalPosition: number) => void;
+  commitScopeGoalPosition: (hillId: string, scopeId: string, oldPosition: number, newPosition: number) => void;
+  syncGoalsFromCurrent: (hillId: string) => void;
   reorderScopes: (hillId: string, fromIndex: number, toIndex: number) => void;
 }
 
@@ -44,6 +48,8 @@ function snapshotToHills(data: Record<string, any> | null): Hill[] {
         position: s.position ?? 0,
         color: s.color || SCOPE_COLORS[0],
         order: s.order ?? 0,
+        hidden: s.hidden ?? false,
+        goalPosition: s.goalPosition ?? undefined,
       }))
       .sort((a, b) => a.order - b.order);
     return {
@@ -325,6 +331,68 @@ export function HillsProvider({ children }: { children: ReactNode }) {
     [pushUndo]
   );
 
+  const toggleScopeHidden = useCallback(
+    (hillId: string, scopeId: string) => {
+      const scope = hills.find((h) => h.id === hillId)?.scopes.find((s) => s.id === scopeId);
+      if (!scope) return;
+      const newHidden = !scope.hidden;
+      const db = getFirebaseDb();
+      update(ref(db, dbPath(`hills/${hillId}/scopes/${scopeId}`)), { hidden: newHidden });
+      pushUndo({
+        undo: () => update(ref(getFirebaseDb(), dbPath(`hills/${hillId}/scopes/${scopeId}`)), { hidden: !newHidden }),
+        redo: () => update(ref(getFirebaseDb(), dbPath(`hills/${hillId}/scopes/${scopeId}`)), { hidden: newHidden }),
+      });
+    },
+    [hills, pushUndo]
+  );
+
+  // Live goal position updates during drag — no undo entry
+  const updateScopeGoalPosition = useCallback(
+    (hillId: string, scopeId: string, goalPosition: number) => {
+      const db = getFirebaseDb();
+      update(ref(db, dbPath(`hills/${hillId}/scopes/${scopeId}`)), { goalPosition });
+    },
+    []
+  );
+
+  // Called at end of drag with captured start position — creates one undo entry
+  const commitScopeGoalPosition = useCallback(
+    (hillId: string, scopeId: string, oldPosition: number, newPosition: number) => {
+      if (Math.abs(oldPosition - newPosition) < 0.001) return;
+      pushUndo({
+        undo: () => update(ref(getFirebaseDb(), dbPath(`hills/${hillId}/scopes/${scopeId}`)), { goalPosition: oldPosition }),
+        redo: () => update(ref(getFirebaseDb(), dbPath(`hills/${hillId}/scopes/${scopeId}`)), { goalPosition: newPosition }),
+      });
+    },
+    [pushUndo]
+  );
+
+  const syncGoalsFromCurrent = useCallback(
+    (hillId: string) => {
+      const hill = hills.find((h) => h.id === hillId);
+      if (!hill) return;
+      const db = getFirebaseDb();
+      const updates: Record<string, number> = {};
+      const oldGoals: Record<string, number | null> = {};
+      hill.scopes.forEach((s) => {
+        oldGoals[s.id] = s.goalPosition ?? null;
+        updates[dbPath(`hills/${hillId}/scopes/${s.id}/goalPosition`)] = s.position;
+      });
+      update(ref(db), updates);
+      pushUndo({
+        undo: () => {
+          const undoUpdates: Record<string, any> = {};
+          Object.entries(oldGoals).forEach(([scopeId, pos]) => {
+            undoUpdates[dbPath(`hills/${hillId}/scopes/${scopeId}/goalPosition`)] = pos;
+          });
+          update(ref(getFirebaseDb()), undoUpdates);
+        },
+        redo: () => update(ref(getFirebaseDb()), updates),
+      });
+    },
+    [hills, pushUndo]
+  );
+
   const reorderScopes = useCallback(
     (hillId: string, fromIndex: number, toIndex: number) => {
       const hill = hills.find((h) => h.id === hillId);
@@ -399,6 +467,10 @@ export function HillsProvider({ children }: { children: ReactNode }) {
         updateScopeName,
         updateScopeDescription,
         updateScopeColor,
+        toggleScopeHidden,
+        updateScopeGoalPosition,
+        commitScopeGoalPosition,
+        syncGoalsFromCurrent,
         reorderScopes,
       }}
     >

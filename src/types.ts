@@ -5,6 +5,8 @@ export interface Scope {
   position: number; // 0 (start, left) → 0.5 (top of hill) → 1 (done, right)
   color: string;
   order: number;
+  hidden?: boolean;
+  goalPosition?: number;
 }
 
 export interface Hill {

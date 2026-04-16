@@ -9,6 +9,7 @@ interface ScopeCardProps {
   onUpdateName: (scopeId: string, name: string) => void;
   onUpdateDescription: (scopeId: string, description: string) => void;
   onUpdateColor: (scopeId: string, color: string) => void;
+  onToggleHidden: () => void;
   isDragging: boolean;
   isDragOver: boolean;
   onDragStart: () => void;
@@ -25,6 +26,7 @@ export default function ScopeCard({
   onUpdateName,
   onUpdateDescription,
   onUpdateColor,
+  onToggleHidden,
   isDragging,
   isDragOver,
   onDragStart,
@@ -53,7 +55,7 @@ export default function ScopeCard({
 
   return (
     <div
-      className={`flex flex-col gap-0 p-3 border border-border-muted rounded-md bg-bg-default transition-[opacity,border-color] duration-150 ${isDragging ? 'opacity-40' : ''} ${isDragOver ? 'border-fg-accent border-dashed' : ''}`}
+      className={`flex flex-col gap-0 p-3 border border-border-muted rounded-md bg-bg-default transition-[opacity,border-color] duration-150 ${isDragging ? 'opacity-40' : ''} ${isDragOver ? 'border-fg-accent border-dashed' : ''} ${scope.hidden ? 'opacity-50' : ''}`}
       draggable
       onDragStart={onDragStart}
       onDragEnter={onDragEnter}
@@ -122,6 +124,23 @@ export default function ScopeCard({
             {scope.name}
           </button>
         )}
+        <button
+          className={`flex items-center justify-center bg-none border-none cursor-pointer p-1 rounded-sm ${scope.hidden ? 'text-fg-accent' : 'text-fg-muted'} hover:text-fg-accent hover:bg-bg-muted`}
+          onClick={onToggleHidden}
+          aria-label={scope.hidden ? `Show ${scope.name} on hill` : `Hide ${scope.name} from hill`}
+          title={scope.hidden ? 'Show on hill' : 'Hide from hill'}
+        >
+          {scope.hidden ? (
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M.143 2.31a.75.75 0 011.047-.167l14 10a.75.75 0 01-.38 1.357.75.75 0 01-.427-.133l-2.18-1.557A7.961 7.961 0 018 13c-3.56 0-6.554-2.321-7.602-5.528a.75.75 0 010-.444A8.004 8.004 0 013.07 3.664L.31 1.69A.75.75 0 01.143 2.31zM8 4.5A3.5 3.5 0 004.5 8c0 .643.173 1.246.476 1.763L6.06 8.985A1.999 1.999 0 016 8a2 2 0 012-2c.353 0 .688.091.985.06l.778-1.084A3.478 3.478 0 008 4.5z" />
+              <path d="M15.602 7.028a.75.75 0 010 .444A8.004 8.004 0 0113.2 10.8l-1.27-.907a6.502 6.502 0 001.672-2.393 6.502 6.502 0 00-5.602-4v-.002c-.34 0-.674.027-1 .08L5.67 3.56A7.963 7.963 0 018 3c3.56 0 6.554 2.321 7.602 5.028z" />
+            </svg>
+          ) : (
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 3c3.56 0 6.554 2.321 7.602 5.528a.75.75 0 010 .444C14.554 12.179 11.56 14.5 8 14.5S1.446 12.179.398 8.972a.75.75 0 010-.444C1.446 5.321 4.44 3 8 3zm0 2a3.5 3.5 0 100 7 3.5 3.5 0 000-7zm0 2a1.5 1.5 0 110 3 1.5 1.5 0 010-3z" />
+            </svg>
+          )}
+        </button>
         <button
           className="flex items-center justify-center bg-none border-none text-fg-muted cursor-pointer p-1 rounded-sm hover:text-fg-danger hover:bg-bg-danger-subtle"
           onClick={() => onDelete(scope.id)}

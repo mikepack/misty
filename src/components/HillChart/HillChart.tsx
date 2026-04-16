@@ -18,13 +18,15 @@ interface HillChartProps {
   scopes: Scope[];
   onUpdatePosition: (id: string, position: number) => void;
   onCommitPosition?: (id: string, oldPosition: number, newPosition: number) => void;
+  originPositions?: Record<string, number>; // scope id → current position (shown as ghost in goal mode)
 }
 
 const DOT_RADIUS = 8;
+const GHOST_RADIUS = 6;
 const NUDGE_STEP = 0.01;
 const hillPath = generateHillPath();
 
-export default function HillChart({ scopes, onUpdatePosition, onCommitPosition }: HillChartProps) {
+export default function HillChart({ scopes, onUpdatePosition, onCommitPosition, originPositions }: HillChartProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -146,6 +148,14 @@ export default function HillChart({ scopes, onUpdatePosition, onCommitPosition }
         preserveAspectRatio="xMidYMid meet"
         className="block w-full h-auto"
       >
+        {originPositions && (
+          <defs>
+            <marker id="goal-arrow" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto">
+              <polygon points="0 0, 8 3, 0 6" fill="var(--fg-accent)" />
+            </marker>
+          </defs>
+        )}
+
         {/* Baseline */}
         <line
           x1={PADDING}
@@ -195,6 +205,43 @@ export default function HillChart({ scopes, onUpdatePosition, onCommitPosition }
           Making it happen
         </text>
 
+        {/* Origin ghosts and arrows (goal mode) */}
+        {originPositions && scopes.map((scope) => {
+          const originPos = originPositions[scope.id];
+          if (originPos == null || Math.abs(originPos - scope.position) < 0.005) return null;
+          const origin = positionToPoint(originPos);
+          const goal = positionToPoint(scope.position);
+          // Shorten arrow so it ends at the edge of the goal dot
+          const dx = goal.x - origin.x;
+          const dy = goal.y - origin.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const pullback = DOT_RADIUS + 12; // dot radius + arrow marker length + gap
+          const arrowX = dist > pullback ? goal.x - (dx / dist) * pullback : goal.x;
+          const arrowY = dist > pullback ? goal.y - (dy / dist) * pullback : goal.y;
+          return (
+            <g key={`origin-${scope.id}`}>
+              <line
+                x1={origin.x} y1={origin.y}
+                x2={arrowX} y2={arrowY}
+                stroke="var(--fg-accent)"
+                strokeWidth={1.5}
+                strokeDasharray="4 3"
+                markerEnd="url(#goal-arrow)"
+                opacity={0.5}
+              />
+              <circle
+                cx={origin.x} cy={origin.y}
+                r={GHOST_RADIUS}
+                fill="none"
+                stroke={scope.color}
+                strokeWidth={2}
+                strokeDasharray="3 2"
+                opacity={0.5}
+              />
+            </g>
+          );
+        })}
+
         {/* Scope dots */}
         {scopes.map((scope) => {
           const { x, y } = positionToPoint(scope.position);
@@ -202,17 +249,6 @@ export default function HillChart({ scopes, onUpdatePosition, onCommitPosition }
           const isSelected = selectedId === scope.id;
           return (
             <g key={scope.id}>
-              {isSelected && (
-                <circle
-                  cx={x}
-                  cy={y}
-                  r={DOT_RADIUS + 4}
-                  fill="none"
-                  stroke={scope.color}
-                  strokeWidth={2}
-                  strokeOpacity={0.4}
-                />
-              )}
               <circle
                 cx={x}
                 cy={y}
