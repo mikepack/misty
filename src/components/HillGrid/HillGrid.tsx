@@ -17,23 +17,64 @@ interface HillGridProps {
   onReorderHills: (fromIndex: number, toIndex: number) => void;
 }
 
-function MiniHillChart({ hill }: { hill: Hill }) {
+function MiniHillChart({ hill, mode }: { hill: Hill; mode: 'current' | 'goal' }) {
+  const visible = hill.scopes.filter((s) => !s.hidden);
   return (
     <svg viewBox="0 0 800 300" className="w-full h-auto mt-3 block" preserveAspectRatio="xMidYMid meet">
+      {mode === 'goal' && (
+        <defs>
+          {visible.map((scope) => (
+            <marker key={scope.id} id={`mini-arrow-${scope.id}`} markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto">
+              <polygon points="0 0, 8 3, 0 6" fill={scope.color} />
+            </marker>
+          ))}
+        </defs>
+      )}
       <path d={miniPath} fill="none" stroke="var(--border-default)" strokeWidth={2} />
-      {hill.scopes.filter((s) => !s.hidden).map((scope) => {
-        const { x, y } = positionToPoint(scope.position);
+      {mode === 'goal' && visible.map((scope) => {
+        const goalPos = scope.goalPosition ?? scope.position;
+        if (Math.abs(scope.position - goalPos) < 0.005) return null;
+        const current = positionToPoint(scope.position);
+        const goal = positionToPoint(goalPos);
+        const dx = goal.x - current.x;
+        const dy = goal.y - current.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const pullback = 22;
+        const ax = dist > pullback ? goal.x - (dx / dist) * pullback : goal.x;
+        const ay = dist > pullback ? goal.y - (dy / dist) * pullback : goal.y;
         return (
-          <circle key={scope.id} cx={x} cy={y} r={10} fill={scope.color} stroke="var(--bg-default)" strokeWidth={2} />
+          <g key={`ghost-${scope.id}`}>
+            <line x1={current.x} y1={current.y} x2={ax} y2={ay}
+              stroke={scope.color} strokeWidth={1.5} strokeDasharray="4 3"
+              markerEnd={`url(#mini-arrow-${scope.id})`} opacity={0.5} />
+            <circle cx={current.x} cy={current.y} r={7}
+              fill="none" stroke={scope.color} strokeWidth={2} strokeDasharray="3 2" opacity={0.5} />
+          </g>
         );
       })}
+      {visible
+        .filter((scope) => {
+          if (mode !== 'goal') return true;
+          const goalPos = scope.goalPosition ?? scope.position;
+          return Math.abs(scope.position - goalPos) >= 0.005;
+        })
+        .map((scope) => {
+          const pos = mode === 'goal' ? (scope.goalPosition ?? scope.position) : scope.position;
+          const { x, y } = positionToPoint(pos);
+          return (
+            <circle key={scope.id} cx={x} cy={y} r={10} fill={scope.color} stroke="var(--bg-default)" strokeWidth={2} />
+          );
+        })}
     </svg>
   );
 }
 
+type IndexMode = 'current' | 'goal';
+
 export default function HillGrid({ hills, onAddHill, onDeleteHill, onDuplicateHill, onReorderHills }: HillGridProps) {
   const router = useRouter();
   const presenceMap = useAllPresence();
+  const [mode, setMode] = useState<IndexMode>('current');
   const [isAdding, setIsAdding] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<Hill | null>(null);
@@ -80,7 +121,23 @@ export default function HillGrid({ hills, onAddHill, onDeleteHill, onDuplicateHi
 
   return (
     <div className="max-w-[960px] mx-auto py-12 px-6">
-      <h1 className="text-[32px] font-semibold text-fg-default mb-6">Hills</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-[32px] font-semibold text-fg-default">Hills</h1>
+        <div className="flex bg-bg-muted rounded-md p-0.5 border border-border-muted">
+          <button
+            className={`px-3 py-1 text-xs font-medium rounded-sm border-none cursor-pointer transition-colors ${mode === 'current' ? 'bg-bg-default text-fg-default shadow-sm' : 'bg-transparent text-fg-muted hover:text-fg-default'}`}
+            onClick={() => setMode('current')}
+          >
+            Current
+          </button>
+          <button
+            className={`px-3 py-1 text-xs font-medium rounded-sm border-none cursor-pointer transition-colors ${mode === 'goal' ? 'bg-bg-default text-fg-accent shadow-sm' : 'bg-transparent text-fg-muted hover:text-fg-default'}`}
+            onClick={() => setMode('goal')}
+          >
+            Goal
+          </button>
+        </div>
+      </div>
       <div className="grid grid-cols-2 max-sm:grid-cols-1 auto-rows-fr gap-4">
         {hills.map((hill, index) => (
           <div
@@ -134,7 +191,7 @@ export default function HillGrid({ hills, onAddHill, onDeleteHill, onDuplicateHi
                 )}
               </div>
             </div>
-            <MiniHillChart hill={hill} />
+            <MiniHillChart hill={hill} mode={mode} />
             <div className="flex items-center justify-between mt-2">
               <span className="text-xs text-fg-muted">
                 {hill.scopes.length} {hill.scopes.length === 1 ? 'scope' : 'scopes'}
