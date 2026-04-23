@@ -10,6 +10,7 @@ interface ScopeCardProps {
   onUpdateDescription: (scopeId: string, description: string) => void;
   onUpdateColor: (scopeId: string, color: string) => void;
   onToggleHidden: () => void;
+  onToggleCompleted: () => void;
   isDragging: boolean;
   isDragOver: boolean;
   onDragStart: () => void;
@@ -27,6 +28,7 @@ export default function ScopeCard({
   onUpdateDescription,
   onUpdateColor,
   onToggleHidden,
+  onToggleCompleted,
   isDragging,
   isDragOver,
   onDragStart,
@@ -124,6 +126,16 @@ export default function ScopeCard({
             {scope.name}
           </button>
         )}
+        <button
+          className="flex items-center justify-center bg-none border-none text-fg-muted cursor-pointer p-1 rounded-sm hover:text-fg-success hover:bg-bg-muted"
+          onClick={onToggleCompleted}
+          aria-label={`Mark ${scope.name} complete`}
+          title="Mark complete"
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z" />
+          </svg>
+        </button>
         <button
           className={`flex items-center justify-center bg-none border-none cursor-pointer p-1 rounded-sm ${scope.hidden ? 'text-fg-accent' : 'text-fg-muted'} hover:text-fg-accent hover:bg-bg-muted`}
           onClick={onToggleHidden}

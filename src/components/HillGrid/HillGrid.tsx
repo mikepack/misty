@@ -18,7 +18,7 @@ interface HillGridProps {
 }
 
 function MiniHillChart({ hill, mode }: { hill: Hill; mode: 'current' | 'goal' }) {
-  const visible = hill.scopes.filter((s) => !s.hidden);
+  const visible = hill.scopes.filter((s) => !s.hidden && !s.completed);
   return (
     <svg viewBox="0 0 800 300" className="w-full h-auto mt-3 block" preserveAspectRatio="xMidYMid meet">
       {mode === 'goal' && (

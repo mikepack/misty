@@ -7,6 +7,7 @@ import { usePresence } from '@/lib/usePresence';
 import HillDescription from '@/components/HillDescription/HillDescription';
 import ScopePanel from '@/components/ScopePanel/ScopePanel';
 import HillChart from '@/components/HillChart/HillChart';
+import PotOfGold from '@/components/PotOfGold/PotOfGold';
 
 type HillMode = 'current' | 'goal';
 
@@ -28,6 +29,7 @@ export default function HillPage() {
     updateScopeDescription,
     updateScopeColor,
     toggleScopeHidden,
+    toggleScopeCompleted,
     reorderScopes,
   } = useHills();
 
@@ -96,9 +98,37 @@ export default function HillPage() {
     [id, toggleScopeHidden]
   );
 
+  const handleToggleCompleted = useCallback(
+    (scopeId: string) => toggleScopeCompleted(id, scopeId),
+    [id, toggleScopeCompleted]
+  );
+
+  const activeScopes = useMemo(
+    () => (hill ? hill.scopes.filter((s) => !s.completed) : []),
+    [hill]
+  );
+  const completedScopes = useMemo(
+    () => (hill
+      ? hill.scopes
+          .filter((s) => s.completed)
+          .slice()
+          .sort((a, b) => (b.completedAt ?? 0) - (a.completedAt ?? 0))
+      : []),
+    [hill]
+  );
+
   const handleReorder = useCallback(
-    (fromIndex: number, toIndex: number) => reorderScopes(id, fromIndex, toIndex),
-    [id, reorderScopes]
+    (fromIndex: number, toIndex: number) => {
+      if (!hill) return;
+      const fromId = activeScopes[fromIndex]?.id;
+      const toId = activeScopes[toIndex]?.id;
+      if (!fromId || !toId) return;
+      const fullFrom = hill.scopes.findIndex((s) => s.id === fromId);
+      const fullTo = hill.scopes.findIndex((s) => s.id === toId);
+      if (fullFrom === -1 || fullTo === -1) return;
+      reorderScopes(id, fullFrom, fullTo);
+    },
+    [id, hill, activeScopes, reorderScopes]
   );
 
   const handleSyncGoals = useCallback(
@@ -109,7 +139,7 @@ export default function HillPage() {
   // In goal mode, show goalPosition (falling back to position if no goal set)
   const chartScopes = useMemo(() => {
     if (!hill) return [];
-    const visible = hill.scopes.filter((s) => !s.hidden);
+    const visible = hill.scopes.filter((s) => !s.hidden && !s.completed);
     if (mode === 'current') return visible;
     return visible.map((s) => ({
       ...s,
@@ -121,7 +151,7 @@ export default function HillPage() {
   const originPositions = useMemo(() => {
     if (!hill || mode !== 'goal') return undefined;
     const map: Record<string, number> = {};
-    hill.scopes.filter((s) => !s.hidden).forEach((s) => {
+    hill.scopes.filter((s) => !s.hidden && !s.completed).forEach((s) => {
       map[s.id] = s.position;
     });
     return map;
@@ -155,7 +185,7 @@ export default function HillPage() {
           presenceUsers={presenceUsers}
         />
         <ScopePanel
-          scopes={hill.scopes}
+          scopes={activeScopes}
           onAddScope={handleAddScope}
           onDeleteScope={handleDeleteScope}
           onReorder={handleReorder}
@@ -163,6 +193,7 @@ export default function HillPage() {
           onUpdateDescription={handleUpdateScopeDescription}
           onUpdateColor={handleUpdateScopeColor}
           onToggleHidden={handleToggleHidden}
+          onToggleCompleted={handleToggleCompleted}
         />
       </div>
       <div className="rightPanel">
@@ -197,6 +228,7 @@ export default function HillPage() {
           onCommitPosition={handleCommitPosition}
           originPositions={originPositions}
         />
+        <PotOfGold scopes={completedScopes} onToggleCompleted={handleToggleCompleted} />
       </div>
     </div>
   );

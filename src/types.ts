@@ -7,6 +7,8 @@ export interface Scope {
   order: number;
   hidden?: boolean;
   goalPosition?: number;
+  completed?: boolean;
+  completedAt?: number;
 }
 
 export interface Hill {

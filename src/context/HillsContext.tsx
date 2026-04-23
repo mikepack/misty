@@ -28,6 +28,7 @@ interface HillsContextValue {
   updateScopeDescription: (hillId: string, scopeId: string, description: string) => void;
   updateScopeColor: (hillId: string, scopeId: string, color: string) => void;
   toggleScopeHidden: (hillId: string, scopeId: string) => void;
+  toggleScopeCompleted: (hillId: string, scopeId: string) => void;
   updateScopeGoalPosition: (hillId: string, scopeId: string, goalPosition: number) => void;
   commitScopeGoalPosition: (hillId: string, scopeId: string, oldPosition: number, newPosition: number) => void;
   syncGoalsFromCurrent: (hillId: string) => void;
@@ -50,6 +51,8 @@ function snapshotToHills(data: Record<string, any> | null): Hill[] {
         order: s.order ?? 0,
         hidden: s.hidden ?? false,
         goalPosition: s.goalPosition ?? undefined,
+        completed: s.completed ?? false,
+        completedAt: s.completedAt ?? undefined,
       }))
       .sort((a, b) => a.order - b.order);
     return {
@@ -346,6 +349,32 @@ export function HillsProvider({ children }: { children: ReactNode }) {
     [hills, pushUndo]
   );
 
+  const toggleScopeCompleted = useCallback(
+    (hillId: string, scopeId: string) => {
+      const scope = hills.find((h) => h.id === hillId)?.scopes.find((s) => s.id === scopeId);
+      if (!scope) return;
+      const newCompleted = !scope.completed;
+      const oldCompletedAt = scope.completedAt ?? null;
+      const newCompletedAt = newCompleted ? Date.now() : null;
+      const db = getFirebaseDb();
+      update(ref(db, dbPath(`hills/${hillId}/scopes/${scopeId}`)), {
+        completed: newCompleted,
+        completedAt: newCompletedAt,
+      });
+      pushUndo({
+        undo: () => update(ref(getFirebaseDb(), dbPath(`hills/${hillId}/scopes/${scopeId}`)), {
+          completed: !newCompleted,
+          completedAt: oldCompletedAt,
+        }),
+        redo: () => update(ref(getFirebaseDb(), dbPath(`hills/${hillId}/scopes/${scopeId}`)), {
+          completed: newCompleted,
+          completedAt: newCompletedAt,
+        }),
+      });
+    },
+    [hills, pushUndo]
+  );
+
   // Live goal position updates during drag — no undo entry
   const updateScopeGoalPosition = useCallback(
     (hillId: string, scopeId: string, goalPosition: number) => {
@@ -468,6 +497,7 @@ export function HillsProvider({ children }: { children: ReactNode }) {
         updateScopeDescription,
         updateScopeColor,
         toggleScopeHidden,
+        toggleScopeCompleted,
         updateScopeGoalPosition,
         commitScopeGoalPosition,
         syncGoalsFromCurrent,
